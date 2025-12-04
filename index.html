@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Temperature & Humidity Monitor</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/raphael/2.3.0/raphael.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/justgage/1.3.5/justgage.min.js"></script>
+  <style>
+    #status {
+      font-weight: bold;
+      color: red;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Temperature & Humidity Monitor</h1>
+  <div id="status">Connecting to ESP32...</div>
+  <div id="tempGauge" style="width:300px; height:200px; display:inline-block;"></div>
+  <div id="humGauge" style="width:300px; height:200px; display:inline-block;"></div>
+
+  <script>
+    const esp32IP = "192.168.1.200"; // static IP of your ESP32
+
+    var tempGauge;
+    var humGauge;
+    var statusDiv = document.getElementById("status");
+
+    function createGauges(temp, hum){
+      tempGauge = new JustGage({
+        id: "tempGauge",
+        value: temp,
+        min: 0,
+        max: 50,
+        title: "Temperature (°C)",
+        label: "°C"
+      });
+
+      humGauge = new JustGage({
+        id: "humGauge",
+        value: hum,
+        min: 0,
+        max: 100,
+        title: "Humidity (%)",
+        label: "%"
+      });
+    }
+
+    function updateData(){
+      fetch(`http://${esp32IP}/data`)
+        .then(response => response.json())
+        .then(data => {
+          tempGauge.refresh(data.temperature);
+          humGauge.refresh(data.humidity);
+          statusDiv.textContent = "Connected";  // success
+          statusDiv.style.color = "green";
+        })
+        .catch(err => {
+          console.log("ESP32 unreachable:", err);
+          statusDiv.textContent = "ESP32 Disconnected";
+          statusDiv.style.color = "red";
+        });
+    }
+
+    window.onload = function(){
+      createGauges(0, 0);
+      updateData();             // initial fetch
+      setInterval(updateData, 3000); // update every 3 seconds
+    }
+  </script>
+</body>
+</html>
